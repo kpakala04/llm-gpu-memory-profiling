@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Clear previous log
+rm -f sglang_server.log
+
+# Enable millisecond logging (like vLLM)
+export SGLANG_LOG_MS=1
+
+# ===== CACHE DIRECTORIES (persistent on $PSCRATCH) =====
+# Flashinfer JIT cache (this is the key one!)
+export FLASHINFER_WORKSPACE_BASE=$PSCRATCH/.cache/flashinfer
+
+# TVM cache
+export TVM_HOME=$PSCRATCH/.cache/tvm
+export TVM_FFI_CACHE_DIR=$PSCRATCH/.cache/tvm-ffi
+
+# General XDG cache
+export XDG_CACHE_HOME=$PSCRATCH/.cache
+
+# PyTorch extensions cache
+export TORCH_EXTENSIONS_DIR=$PSCRATCH/.cache/torch_extensions
+
+# Triton kernel cache
+export TRITON_CACHE_DIR=$PSCRATCH/.cache/triton
+
+# CUDA compilation cache
+export CUDA_CACHE_PATH=$PSCRATCH/.cache/cuda
+
+# Create all directories
+mkdir -p $FLASHINFER_WORKSPACE_BASE $TVM_HOME $TVM_FFI_CACHE_DIR $XDG_CACHE_HOME $TORCH_EXTENSIONS_DIR $TRITON_CACHE_DIR $CUDA_CACHE_PATH
+
+# Set custom logging configuration
+export SGLANG_LOGGING_CONFIG_PATH=./sglang_logging_config.json
+
+CUDA_VISIBLE_DEVICES=0,1 \
+python -m sglang.launch_server \
+    --model-path meta-llama/CodeLlama-34b-hf \
+    --schedule-policy fcfs \
+    --enable-metrics \
+    --tp 2 \
+    --trust-remote-code \
+    --disable-cuda-graph \
+    --port 30000
